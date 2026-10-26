@@ -1,0 +1,21 @@
+# Model weights are large and are NOT version-controlled.
+# Download/place them under checkpoints/ (see README "Getting the weights").
+checkpoints/*.pth
+!checkpoints/.gitkeep
+
+# Datasets are large and are NOT version-controlled (see docs/DATASETS.md).
+data/
+
+# Runtime artifacts
+temp_uploads/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Local environments / secrets
+venv/
+.venv/
+.env
+
+# OS noise
+.DS_Store

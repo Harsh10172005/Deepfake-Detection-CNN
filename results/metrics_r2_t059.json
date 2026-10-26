@@ -1,0 +1,41 @@
+{
+  "model_name": "efficientnet_b0",
+  "weights": "checkpoints_r2b/best_efficientnet_b0.pth",
+  "dataset_name": "Celeb-DF official test set - 128-video subset (64 real / 64 fake), 3788 face crops",
+  "dataset_dir": "data/celebdf/test",
+  "n_samples": 3788,
+  "n_real": 1883,
+  "n_fake": 1905,
+  "threshold": 0.59,
+  "accuracy": 0.6512671594508975,
+  "precision": 0.8924731182795699,
+  "recall": 0.3485564304461942,
+  "f1_score": 0.5013212533031333,
+  "roc_auc": 0.867093472052053,
+  "confusion_matrix": {
+    "true_negative": 1803,
+    "false_positive": 80,
+    "false_negative": 1241,
+    "true_positive": 664
+  },
+  "video_level": {
+    "n_videos": 128,
+    "n_real_videos": 64,
+    "n_fake_videos": 64,
+    "threshold": 0.59,
+    "accuracy": 0.6484375,
+    "precision": 0.9130434782608695,
+    "recall": 0.328125,
+    "f1_score": 0.4827586206896552,
+    "roc_auc": 0.8955078125,
+    "confusion_matrix": {
+      "true_negative": 62,
+      "false_positive": 2,
+      "false_negative": 43,
+      "true_positive": 21
+    }
+  },
+  "evaluated_at": "2026-10-25T18:28:13.352746+00:00",
+  "torch_version": "2.14.1+cpu",
+  "device": "cpu"
+}

@@ -1,0 +1,27 @@
+services:
+  deepfake-detection-cnn:
+    build: .
+    image: deepfake-detection-cnn:latest
+    container_name: deepfake-detection-cnn
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./checkpoints:/app/checkpoints
+      - ./results:/app/results
+    environment:
+      - MODEL_NAME=efficientnet_b0
+      - MODEL_WEIGHTS=/app/checkpoints/best_cnn_efficientnet_b0.pth
+    restart: unless-stopped
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  # Training (optional, run once):
+  #   docker compose run --rm trainer
+  # trainer:
+  #   build: .
+  #   image: deepfake-detection-cnn:latest
+  #   volumes:
+  #     - ./data:/app/data
+  #     - ./checkpoints:/app/checkpoints
+  #   command: ["python", "train.py", "--data_dir", "data/faces/train",
+  #             "--model_name", "efficientnet_b0", "--epochs", "3"]

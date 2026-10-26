@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deepfake Detection — CNN Image Authenticity Checker</title>
+<meta name="description" content="Upload a face image and let a fine-tuned EfficientNet CNN estimate whether it is real or a deepfake / AI-manipulated image. Evaluated on the Celeb-DF test set.">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+      </div>
+      <div>
+        <h1>Deepfake Detection</h1>
+        <p class="tagline">CNN-based image authenticity checker</p>
+      </div>
+    </div>
+    <div class="header-meta">
+      <span class="chip" id="model-chip">EfficientNet-B0 · CNN</span>
+      <span class="chip chip-status" id="status-chip"><span class="dot dot-wait"></span>checking model…</span>
+    </div>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="hero">
+    <p class="hero-eyebrow">EfficientNet-B0 · PyTorch · FastAPI</p>
+    <h2 class="hero-title">Is this face <span class="grad-real">real</span> — or a <span class="grad-fake">deepfake</span>?</h2>
+    <p class="hero-sub">Upload a face photo or a frame from a video. The CNN looks for the blending, texture and frequency artifacts that manipulated faces leave behind, and gives you a verdict with its confidence — plus the model's real, measured test performance below. No placeholder numbers.</p>
+  </section>
+
+  <section class="card analyzer-card">
+    <h2>Analyze an image</h2>
+    <p class="card-sub">Drop a photo, browse, or paste an image from your clipboard. Best results: a clear, front-facing face, cropped fairly tight.</p>
+
+    <div id="drop-zone" class="drop-zone" tabindex="0" role="button" aria-label="Upload an image">
+      <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp" hidden>
+      <div class="drop-empty" id="drop-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
+        <p><strong>Drag &amp; drop</strong> your image here, or <span class="link-like">browse</span></p>
+        <p class="hint">PNG, JPG or WebP · max 15 MB · or press Ctrl/Cmd+V to paste</p>
+      </div>
+      <img id="preview" class="preview hidden" alt="Uploaded image preview">
+    </div>
+    <p class="file-meta hidden" id="file-meta"></p>
+
+    <div class="analyzer-actions">
+      <button id="analyze-btn" class="btn-primary" disabled>Analyze image</button>
+      <button id="reset-btn" class="btn-ghost hidden" type="button">Clear &amp; try another</button>
+    </div>
+    <p class="error hidden" id="error-box" role="alert"></p>
+  </section>
+
+  <section class="card result-card" aria-live="polite">
+    <h2>Result</h2>
+    <div id="result-empty" class="result-empty">
+      <div class="result-empty-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      </div>
+      <p>No image analyzed yet.</p>
+      <p class="fineprint">Your verdict, confidence and the model's fake-probability will appear here.</p>
+    </div>
+    <div id="result-body" class="hidden">
+      <div class="verdict-row">
+        <span id="verdict-badge" class="verdict-badge">—</span>
+        <div class="verdict-numbers">
+          <span id="confidence-value" class="confidence-value">—</span>
+          <span class="confidence-label">confidence</span>
+        </div>
+      </div>
+      <div class="meter" role="img" aria-label="Confidence meter">
+        <div id="meter-fill" class="meter-fill"></div>
+      </div>
+      <p id="verdict-note" class="verdict-note hidden"></p>
+      <div class="prob-split" aria-label="Real versus fake probability">
+        <div class="prob-col">
+          <div class="prob-head"><span>Real</span><span id="prob-real-value">—</span></div>
+          <div class="prob-track"><div id="prob-real-fill" class="prob-fill is-real"></div></div>
+        </div>
+        <div class="prob-col">
+          <div class="prob-head"><span>Fake</span><span id="prob-fake-value">—</span></div>
+          <div class="prob-track"><div id="prob-fake-fill" class="prob-fill is-fake"></div></div>
+        </div>
+      </div>
+      <dl class="detail-list">
+        <div><dt>Fake probability</dt><dd id="prob-fake">—</dd></div>
+        <div><dt>File</dt><dd id="result-file">—</dd></div>
+        <div><dt>Model</dt><dd id="result-model">—</dd></div>
+      </dl>
+      <p class="fineprint">The probability is the model's estimate, not proof. Treat borderline scores (near 50%) as inconclusive.</p>
+    </div>
+    <div id="result-loading" class="hidden result-loading">
+      <div class="spinner" aria-hidden="true"></div>
+      <p>Running the CNN…</p>
+    </div>
+  </section>
+
+  <section class="card metrics-card">
+    <h2>Measured model performance</h2>
+    <p class="card-sub">Real evaluation numbers — computed by <code>evaluate.py</code> on a held-out test set the model never trained on. No placeholders.</p>
+    <div id="metrics-grid" class="metrics-grid hidden">
+      <div class="metric"><span class="metric-value" id="m-accuracy">—</span><span class="metric-label">Accuracy</span></div>
+      <div class="metric"><span class="metric-value" id="m-precision">—</span><span class="metric-label">Precision</span></div>
+      <div class="metric"><span class="metric-value" id="m-recall">—</span><span class="metric-label">Recall</span></div>
+      <div class="metric"><span class="metric-value" id="m-f1">—</span><span class="metric-label">F1-score</span></div>
+      <div class="metric"><span class="metric-value" id="m-auc">—</span><span class="metric-label">ROC-AUC</span></div>
+    </div>
+    <p id="metrics-meta" class="metrics-meta hidden"></p>
+    <div id="metrics-plots" class="plots hidden">
+      <figure class="plot">
+        <img id="plot-cm" src="/results/confusion_matrix_metrics.png" alt="Confusion matrix on the held-out test set" loading="lazy">
+        <figcaption>Confusion matrix — held-out test set</figcaption>
+      </figure>
+      <figure class="plot">
+        <img id="plot-roc" src="/results/roc_curve_metrics.png" alt="ROC curve on the held-out test set" loading="lazy">
+        <figcaption>ROC curve — held-out test set</figcaption>
+      </figure>
+    </div>
+    <p id="metrics-missing" class="fineprint">Evaluation results are not available on this server yet.</p>
+  </section>
+
+  <section class="card how-card">
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li><strong>Preprocess.</strong> The image is resized to 224×224 and normalized with ImageNet statistics — the same pipeline used in training and evaluation.</li>
+      <li><strong>One CNN pass.</strong> A fine-tuned EfficientNet-B0 convolutional network extracts artifact and texture features and outputs a single fake-probability.</li>
+      <li><strong>Verdict.</strong> Probability above 0.5 → <em>Fake</em>, otherwise <em>Real</em>, reported with the model's confidence.</li>
+    </ol>
+    <p class="fineprint">Trained and evaluated on face imagery from the Celeb-DF v2 benchmark (real celebrity / YouTube face videos vs. high-quality face-swap deepfakes), with a video-level train/test split so no video leaks across sets. It detects AI-generated / manipulated face imagery; it is a research demo, not a forensic tool.</p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>Deepfake Detection (CNN) · EfficientNet-B0 + FastAPI · Built for portfolio &amp; research purposes</p>
+</footer>
+
+<script src="/static/script.js"></script>
+</body>
+</html>
