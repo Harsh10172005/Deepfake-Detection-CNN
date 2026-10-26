@@ -220,7 +220,14 @@ pip install -r requirements.txt
 You also need a trained checkpoint at
 `checkpoints/best_cnn_efficientnet_b0.pth` (checkpoints are not
 committed — train one as below, or place your own there; the app
-reports a clear 503 until weights exist).
+reports a clear 503 until weights exist). The trained checkpoint for
+this project is attached to the **v1.0 GitHub Release** of this repo.
+
+**Deploying (Render):** `render.yaml` defines the service (Docker,
+free plan). Because the checkpoint is not in git, the app downloads it
+at startup when the `WEIGHTS_URL` environment variable is set — the
+blueprint already points it at the v1.0 Release asset. The Docker
+image honours the host's `$PORT`.
 
 Or with Docker:
 

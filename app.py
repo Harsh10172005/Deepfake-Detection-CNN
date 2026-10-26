@@ -13,11 +13,16 @@ Configuration via environment variables:
     MODEL_NAME    CNN backbone (default: efficientnet_b0)
     MODEL_WEIGHTS path to the .pth checkpoint
                   (default: checkpoints/best_cnn_efficientnet_b0.pth)
+    WEIGHTS_URL   optional https URL to download the checkpoint from at
+                  startup when the file is missing (used on hosts where
+                  the weights are not part of the deployment, e.g. a
+                  GitHub Release asset on Render — see render.yaml)
     PORT          listen port (default: 8080)
 """
 import json
 import os
 import shutil
+import urllib.request
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -44,6 +49,28 @@ IMG_SIZE = 224
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024  # 15 MB
 ALLOWED_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp")
 
+WEIGHTS_URL = os.environ.get("WEIGHTS_URL", "")
+
+
+def ensure_weights() -> None:
+    """Download the checkpoint from WEIGHTS_URL if it is missing locally.
+
+    Hosts like Render deploy only the git repository, which deliberately
+    does not contain the ~48 MB checkpoint. The file is fetched once at
+    startup (atomically, via a .part file) and reused afterwards.
+    """
+    if os.path.exists(MODEL_WEIGHTS) or not WEIGHTS_URL:
+        return
+    dest = Path(MODEL_WEIGHTS)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    part = dest.with_suffix(dest.suffix + ".part")
+    print(f"[weights] checkpoint missing; downloading from {WEIGHTS_URL} ...")
+    with urllib.request.urlopen(WEIGHTS_URL, timeout=120) as resp, open(part, "wb") as fh:
+        shutil.copyfileobj(resp, fh, length=1024 * 1024)
+    part.replace(dest)
+    print(f"[weights] downloaded {dest.stat().st_size} bytes -> {dest}")
+
+
 # Populated at startup by the lifespan handler.
 state = {"device": None, "model": None, "transform": None, "model_error": None}
 
@@ -57,6 +84,7 @@ async def lifespan(_app):
     state["device"] = device
     _, state["transform"] = get_transforms(img_size=IMG_SIZE)
     try:
+        ensure_weights()
         if not os.path.exists(MODEL_WEIGHTS):
             raise FileNotFoundError(f"Weights not found at {MODEL_WEIGHTS}")
         print(f"Loading {MODEL_NAME} on {device} from {MODEL_WEIGHTS} ...")
