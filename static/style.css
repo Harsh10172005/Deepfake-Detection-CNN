@@ -86,6 +86,8 @@ body {
 .grad-real { background: linear-gradient(90deg, #059669, var(--real)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .grad-fake { background: linear-gradient(90deg, #e11d48, var(--fake)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .hero-sub { color: var(--muted); max-width: 760px; font-size: 0.99rem; }
+.scope-note { color: var(--muted); max-width: 760px; font-size: 0.9rem; margin-top: 14px; padding: 10px 14px; border: 1px solid rgba(148, 163, 255, 0.35); border-radius: 10px; background: rgba(99, 102, 241, 0.08); }
+.scope-note strong { color: var(--text, #e5e7eb); }
 
 /* ---------- layout & cards ---------- */
 .layout {
